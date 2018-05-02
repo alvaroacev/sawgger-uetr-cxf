@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:cxf="http://camel.apache.org/schema/cxf"
+       xmlns:spring="http://camel.apache.org/schema/spring"
+       xmlns:http="http://cxf.apache.org/transports/http/configuration"
+       xmlns:sec="http://cxf.apache.org/configuration/security"
+       xmlns:httpj="http://cxf.apache.org/transports/http-jetty/configuration"
+       xsi:schemaLocation="
+            http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+            http://camel.apache.org/schema/cxf http://camel.apache.org/schema/cxf/camel-cxf.xsd
+            http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd
+            http://cxf.apache.org/transports/http-jetty/configuration http://cxf.apache.org/schemas/configuration/http-jetty.xsd
+            http://cxf.apache.org/transports/http/configuration http://cxf.apache.org/schemas/configuration/http-conf.xsd
+    		http://cxf.apache.org/configuration/security http://cxf.apache.org/schemas/configuration/security.xsd">
+
+
+    <!-- Defined the server endpoint to create the cxf-rs consumer -->
+	<cxf:rsServer id="rsServer" address="http://0.0.0.0:9191/v1"
+		  serviceClass="io.swagger.api.impl.DefaultApiServiceImpl"/>
+	
+	<!-- Beans used to retrieve WS request and to build WS responses -->
+	<bean id="generateResponse" class="io.swagger.api.impl.ResponseMessage"/>
+
+	<!-- Throws an exception if the WS operation is not putCsv or getAck -->
+	<bean id="invalidOperationException" class="java.lang.IllegalArgumentException">
+   		<constructor-arg index="0" value="Only operations '' are supported in this flow"/>
+	</bean>
+	
+	<bean id="uetrBean" class="com.uetr.function.UETR"/>
+	
+	
+    <camelContext id="swagger-jaxrs" xmlns="http://camel.apache.org/schema/spring">
+		
+		<!-- The following route will route the WS request depending on the operation that the user called. -->
+		<!-- If the operation is incorrect, an exception is thrown. -->
+		<route id="Read_Input_REST">
+			<from uri="cxfrs:bean:rsServer"/>
+			<choice>
+				<when>
+					<simple>${header.operationName} == 'uetr'</simple>
+					<to uri="direct:uetr"/>
+				</when>
+				<otherwise>
+					<throwException ref="invalidOperationException"/>
+				</otherwise>			
+			</choice>
+		</route>
+
+		<!-- The following route gets a record from REST web service and store its content -->
+        <!-- as a message instance in a queue of Alliance Access. -->
+		<route id="GenerateUETR">
+			<from uri="direct:uetr"/>
+			<setBody>
+				<method ref="uetrBean" method="generateUETR"/>
+			</setBody>
+			<log message="\n*** body: [${body}])" />          
+            <bean ref="generateResponse"/>
+        </route>
+        
+    </camelContext>
+</beans>

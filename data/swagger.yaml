@@ -1,0 +1,37 @@
+swagger: '2.0'
+info:
+  description: >-
+    The purpose of this specification is to provide simple way to generate a
+    UUID
+  version: 1.0.3
+  title: UETR API
+host: localhost
+basePath: /v1
+tags:
+  - name: uetr
+    description: returns a UETR A Universally Unique IDentifier (UUID) URN Namespace
+schemes:
+  - http
+paths:
+  /uetr:
+    get:
+      summary: Get a valid UETR
+      description: Returns a UUID
+      operationId: uetr
+      responses:
+        '200':
+          description: Valid request sent to
+          schema:
+            $ref: '#/definitions/UETR'
+        '404':
+          description: URI not found
+definitions:
+  UETR:
+    type: string
+    properties:
+      uetr:
+        type: string
+        description: 'Unique Identifier, this is unique for all messages to be sent'
+        maxLength: 36
+    xml:
+      name: uetr
